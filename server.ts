@@ -13,11 +13,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Supabase Connection
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL = process.env.DATABASE_URL?.trim();
 if (!DATABASE_URL && process.env.NODE_ENV === "production") {
   console.error("CRITICAL ERROR: DATABASE_URL is not defined in environment variables!");
   console.error("Please add DATABASE_URL to your Render environment settings.");
 }
+
+console.log("🛠️ Server environment:", process.env.NODE_ENV || "development");
 
 // Configure postgres with SSL for Supabase
 const sql = postgres(DATABASE_URL || "postgres://postgres:postgres@localhost:5432/postgres", {
@@ -40,7 +42,20 @@ process.on("uncaughtException", (err) => {
 
 // Initialize Database
 async function initDb() {
+  console.log("🚀 Starting database initialization...");
+  
+  if (DATABASE_URL) {
+    console.log("📡 DATABASE_URL detected, attempting to connect to Supabase...");
+  } else {
+    console.log("🏠 No DATABASE_URL found, using local fallback...");
+  }
+
   try {
+    // Test connection
+    await sql`SELECT 1`;
+    console.log("✅ Database connection test successful!");
+
+    console.log("📦 Creating 'users' table...");
     await sql`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -51,6 +66,7 @@ async function initDb() {
       );
     `;
 
+    console.log("📦 Creating 'jobs' table...");
     await sql`
       CREATE TABLE IF NOT EXISTS jobs (
         id SERIAL PRIMARY KEY,
@@ -70,6 +86,7 @@ async function initDb() {
       );
     `;
 
+    console.log("📦 Creating 'applications' table...");
     await sql`
       CREATE TABLE IF NOT EXISTS applications (
         id SERIAL PRIMARY KEY,
@@ -81,6 +98,7 @@ async function initDb() {
       );
     `;
 
+    console.log("📦 Creating 'resumes' table...");
     await sql`
       CREATE TABLE IF NOT EXISTS resumes (
         id SERIAL PRIMARY KEY,
@@ -92,15 +110,19 @@ async function initDb() {
     `;
 
     // Seed Admin if not exists
+    console.log("🌱 Checking for admin user...");
     const adminCheck = await sql`SELECT * FROM users WHERE role = 'admin' LIMIT 1`;
     if (adminCheck.length === 0) {
+      console.log("🌱 Seeding admin user...");
       const hashedPassword = bcrypt.hashSync("admin123", 10);
       await sql`INSERT INTO users (email, password, name, role) VALUES ('admin@careerpulse.com', ${hashedPassword}, 'System Admin', 'admin')`;
     }
 
     // Seed Jobs if empty
+    console.log("🌱 Checking for jobs...");
     const jobsCheck = await sql`SELECT COUNT(*) as count FROM jobs`;
     if (parseInt(jobsCheck[0].count) === 0) {
+      console.log("🌱 Seeding initial jobs...");
       const seedJobs = [
         {
           title: "Senior Full Stack Engineer",
@@ -147,9 +169,10 @@ async function initDb() {
         `;
       }
     }
-    console.log("Database initialized successfully");
+    console.log("✨ Database initialized successfully!");
   } catch (err) {
-    console.error("Database initialization failed:", err);
+    console.error("❌ Database initialization failed!");
+    console.error("Error details:", err);
   }
 }
 
