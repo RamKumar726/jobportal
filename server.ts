@@ -12,7 +12,8 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const db = new Database("database.db");
+const dbPath = process.env.DATABASE_PATH || "database.db";
+const db = new Database(dbPath);
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key";
 
 // Initialize Database

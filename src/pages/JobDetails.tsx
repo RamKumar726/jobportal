@@ -87,8 +87,8 @@ export default function JobDetails() {
       const resume = resumes.find(r => r.id === selectedResume);
       const analysis = await analyzeResume(JSON.parse(resume!.content), job!.description);
       setAIAnalysis(analysis);
-    } catch (e) {
-      alert("AI Analysis failed");
+    } catch (e: any) {
+      alert(e.message || "AI Analysis failed");
       setShowAIPanel(false);
     } finally {
       setAnalyzing(false);
