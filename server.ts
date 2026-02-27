@@ -6,6 +6,10 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import postgres from "postgres";
 import dotenv from "dotenv";
+import dns from "node:dns";
+
+// Force IPv4 first to avoid ENETUNREACH errors on environments with broken IPv6 (like some Render nodes)
+dns.setDefaultResultOrder("ipv4first");
 
 dotenv.config();
 
