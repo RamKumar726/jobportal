@@ -15,10 +15,15 @@ const __dirname = path.dirname(__filename);
 // Supabase Connection
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL && process.env.NODE_ENV === "production") {
-  console.error("DATABASE_URL is required in production!");
+  console.error("CRITICAL ERROR: DATABASE_URL is not defined in environment variables!");
+  console.error("Please add DATABASE_URL to your Render environment settings.");
 }
 
-const sql = postgres(DATABASE_URL || "postgres://postgres:postgres@localhost:5432/postgres");
+// Configure postgres with SSL for Supabase
+const sql = postgres(DATABASE_URL || "postgres://postgres:postgres@localhost:5432/postgres", {
+  ssl: DATABASE_URL ? "require" : false,
+  connect_timeout: 10,
+});
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key";
 
 // Initialize Database
