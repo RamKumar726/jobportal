@@ -21,10 +21,22 @@ if (!DATABASE_URL && process.env.NODE_ENV === "production") {
 
 // Configure postgres with SSL for Supabase
 const sql = postgres(DATABASE_URL || "postgres://postgres:postgres@localhost:5432/postgres", {
-  ssl: DATABASE_URL ? "require" : false,
+  ssl: DATABASE_URL ? { rejectUnauthorized: false } : false,
   connect_timeout: 10,
+  max: 10,
 });
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key";
+
+// Global error handlers
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+  // Give the server a second to log before exiting
+  setTimeout(() => process.exit(1), 1000);
+});
 
 // Initialize Database
 async function initDb() {
@@ -142,10 +154,20 @@ async function initDb() {
 }
 
 async function startServer() {
-  await initDb();
-  
   const app = express();
   app.use(express.json());
+
+  // Start listening immediately to satisfy Render's health check
+  const server = app.listen(3000, "0.0.0.0", () => {
+    console.log("Server listening on port 3000");
+  });
+
+  // Initialize DB in the background
+  initDb().then(() => {
+    console.log("Background DB initialization complete");
+  }).catch(err => {
+    console.error("Background DB initialization failed:", err);
+  });
 
   // --- Auth Middleware ---
   const authenticate = (req: any, res: any, next: any) => {
@@ -281,10 +303,6 @@ async function startServer() {
       res.sendFile(path.join(__dirname, "dist", "index.html"));
     });
   }
-
-  app.listen(3000, "0.0.0.0", () => {
-    console.log("Server running on http://localhost:3000");
-  });
 }
 
 startServer();
